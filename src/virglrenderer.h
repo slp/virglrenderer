@@ -406,6 +406,7 @@ VIRGL_EXPORT int virgl_renderer_resource_unmap(uint32_t res_handle);
 #define VIRGL_RENDERER_MAP_CACHE_WC        0x03
 
 VIRGL_EXPORT int virgl_renderer_resource_get_map_info(uint32_t res_handle, uint32_t *map_info);
+VIRGL_EXPORT int virgl_renderer_resource_get_map_ptr(uint32_t res_handle, uint64_t *map_ptr);
 
 #define VIRGL_RENDERER_BLOB_FD_TYPE_DMABUF        0x0001
 #define VIRGL_RENDERER_BLOB_FD_TYPE_OPAQUE        0x0002

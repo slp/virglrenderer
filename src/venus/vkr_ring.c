@@ -38,6 +38,7 @@ vkr_ring_init_buffer(struct vkr_ring *ring, const struct vkr_ring_layout *layout
    buf->mask = buf->size - 1;
    buf->cur = 0;
    buf->data = get_resource_pointer(layout->resource, layout->buffer.begin);
+   //fprintf(stderr, "%s: buf->data=%p\n", __func__, (void *) buf->data);
 }
 
 static bool
@@ -62,6 +63,7 @@ vkr_ring_store_head(struct vkr_ring *ring, uint32_t ring_head)
    /* the renderer is expected to load the head with memory_order_acquire,
     * forming a release-acquire ordering
     */
+   //fprintf(stderr, "%s: ring_head=%d\n", __func__, ring_head);
    atomic_store_explicit(ring->control.head, ring_head, memory_order_release);
 }
 
@@ -197,7 +199,7 @@ vkr_ring_relax(uint32_t *iter)
       .tv_sec = us / 1000000,
       .tv_nsec = (us % 1000000) * 1000,
    };
-   clock_nanosleep(CLOCK_MONOTONIC, 0, &ts, NULL);
+   nanosleep(&ts, NULL);
 }
 
 static bool
@@ -240,6 +242,8 @@ vkr_ring_thread(void *arg)
    struct vkr_context *ctx = ring->dispatch.data;
    char thread_name[16];
 
+   //fprintf(stderr, "XXX - %s: entry\n", __func__);
+
    snprintf(thread_name, ARRAY_SIZE(thread_name), "vkr-ring-%d", ctx->ctx_id);
    u_thread_setname(thread_name);
 
@@ -247,6 +251,7 @@ vkr_ring_thread(void *arg)
    uint32_t relax_iter = 0;
    int ret = 0;
    while (ring->started) {
+      //fprintf(stderr, "XXX - %s: started\n", __func__);
       bool wait = false;
       if (vkr_ring_now() >= last_submit + ring->idle_timeout) {
          ring->pending_notify = false;
@@ -257,6 +262,7 @@ vkr_ring_thread(void *arg)
       }
 
       if (wait) {
+         //fprintf(stderr, "XXX - %s: waiting\n", __func__);
          TRACE_SCOPE("ring idle");
 
          mtx_lock(&ring->mutex);
@@ -272,8 +278,12 @@ vkr_ring_thread(void *arg)
          relax_iter = 0;
       }
 
+      const uint32_t tail = vkr_ring_load_tail(ring);
+      const uint32_t cur = ring->buffer.cur;
+      //fprintf(stderr, "XXX - %s: process: tail=%d cur=%d\n", __func__, tail, cur);
       const uint32_t cmd_size = vkr_ring_load_tail(ring) - ring->buffer.cur;
       if (cmd_size) {
+         //fprintf(stderr, "XXX - %s: cmd_size=%d\n", __func__, cmd_size);
          if (cmd_size > ring->buffer.size) {
             ret = -EINVAL;
             break;
@@ -282,6 +292,7 @@ vkr_ring_thread(void *arg)
          const uint32_t ring_head = ring->buffer.cur;
          vkr_ring_read_buffer(ring, ring->cmd, cmd_size);
 
+         //fprintf(stderr, "XXX - %s: ring->cmd=%d\n", __func__, ring->cmd);
          if (!vkr_ring_submit_cmd(ring, ring->cmd, cmd_size, ring_head)) {
             ret = -EINVAL;
             break;

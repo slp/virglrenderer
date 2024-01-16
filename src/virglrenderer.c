@@ -53,6 +53,8 @@
 #include "virgl_resource.h"
 #include "virgl_util.h"
 
+#include "venus_context.h"
+
 struct global_state {
    bool client_initialized;
    void *cookie;
@@ -233,7 +235,8 @@ int virgl_renderer_context_create_with_flags(uint32_t ctx_id,
    case VIRGL_RENDERER_CAPSET_VENUS:
       if (!state.proxy_initialized)
          return EINVAL;
-      ctx = proxy_context_create(ctx_id, ctx_flags, nlen, name);
+      //ctx = proxy_context_create(ctx_id, ctx_flags, nlen, name);
+      ctx = venus_context_create(ctx_id, ctx_flags, nlen, name);
       break;
    case VIRGL_RENDERER_CAPSET_DRM:
       if (!state.drm_initialized)
@@ -891,9 +894,10 @@ int virgl_renderer_init(void *cookie, int flags, struct virgl_renderer_callbacks
    }
 
    if (!state.proxy_initialized && (flags & VIRGL_RENDERER_RENDER_SERVER)) {
-      ret = proxy_renderer_init(&proxy_cbs, flags | VIRGL_RENDERER_NO_VIRGL);
-      if (ret)
-         goto fail;
+      //ret = proxy_renderer_init(&proxy_cbs, flags | VIRGL_RENDERER_NO_VIRGL);
+      //if (ret)
+      //   goto fail;
+      venus_renderer_init();
       state.proxy_initialized = true;
    }
 
@@ -1148,10 +1152,12 @@ int virgl_renderer_resource_create_blob(const struct virgl_renderer_resource_cre
       return ret;
 
    if (blob.type == VIRGL_RESOURCE_OPAQUE_HANDLE) {
-      assert(!(args->blob_flags & VIRGL_RENDERER_BLOB_FLAG_USE_SHAREABLE));
+      //assert(!(args->blob_flags & VIRGL_RENDERER_BLOB_FLAG_USE_SHAREABLE));
       res = virgl_resource_create_from_opaque_handle(ctx, args->res_handle, blob.u.opaque_handle);
       if (!res)
          return -ENOMEM;
+      res->map_ptr = blob.map_ptr;
+      fprintf(stderr, "%s: resource is OPAQUE: 0x%lld\n", __func__, res->map_ptr);
    } else if (blob.type != VIRGL_RESOURCE_FD_INVALID) {
       res = virgl_resource_create_from_fd(args->res_handle,
                                           blob.type,
@@ -1271,6 +1277,19 @@ int virgl_renderer_resource_get_map_info(uint32_t res_handle, uint32_t *map_info
    return 0;
 }
 
+int virgl_renderer_resource_get_map_ptr(uint32_t res_handle, uint64_t *map_ptr)
+{
+   TRACE_FUNC();
+   struct virgl_resource *res = virgl_resource_lookup(res_handle);
+   if (!res)
+      return -EINVAL;
+
+   fprintf(stderr, "%s: map_ptr=0x%llx\n", __func__, res->map_ptr);
+
+   *map_ptr = res->map_ptr;
+   return 0;
+}
+
 int
 virgl_renderer_resource_export_blob(uint32_t res_id, uint32_t *fd_type, int *fd)
 {
@@ -1290,6 +1309,8 @@ virgl_renderer_resource_export_blob(uint32_t res_id, uint32_t *fd_type, int *fd)
       *fd_type = VIRGL_RENDERER_BLOB_FD_TYPE_SHM;
       break;
    case VIRGL_RESOURCE_OPAQUE_HANDLE:
+      *fd_type = VIRGL_RENDERER_BLOB_FD_TYPE_OPAQUE;
+      break;
    case VIRGL_RESOURCE_FD_INVALID:
       /* Avoid a default case so that -Wswitch will tell us at compile time if a
        * new virgl resource type is added without being handled here.

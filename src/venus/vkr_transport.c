@@ -189,6 +189,8 @@ vkr_dispatch_vkCreateRingMESA(struct vn_dispatch_context *dispatch,
    struct vkr_context *ctx = dispatch->data;
    const VkRingCreateInfoMESA *info = args->pCreateInfo;
 
+   fprintf(stderr, "%s: entry\n", __func__);
+
    const struct vkr_resource *res = vkr_context_get_resource(ctx, info->resourceId);
    if (!res) {
       vkr_context_set_fatal(ctx);

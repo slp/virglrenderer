@@ -71,7 +71,7 @@ add_project_arguments(cc.get_supported_arguments(flags), language : 'c')
 prog_python = import('python').find_installation('python3')
 
 not_found = dependency('', required: false)
-libdrm_dep = dependency('libdrm', version : '>=2.4.50', required: get_option('drm').enabled() or get_option('venus'))
+libdrm_dep = dependency('libdrm', version : '>=2.4.50', required: get_option('drm').enabled())
 gbm_dep = not_found
 thread_dep = dependency('threads')
 epoxy_dep = dependency('epoxy', version: '>= 1.5.4')

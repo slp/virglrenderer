@@ -34,7 +34,7 @@
 #include <errno.h>
 #include <stdlib.h>
 
-#if defined(HAVE_MEMFD_CREATE) || defined(__FreeBSD__) || defined(__OpenBSD__)
+#if defined(HAVE_MEMFD_CREATE) || defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__APPLE__)
 #include <sys/mman.h>
 #elif defined(ANDROID)
 #include <sys/syscall.h>
@@ -129,6 +129,16 @@ os_create_anonymous_file(off_t size, const char *debug_name)
    fd = shm_mkstemp(template);
    if (fd != -1)
       shm_unlink(template);
+#elif defined(__APPLE__)
+   char template[] = "/tmp/mesa-XXXXXXXXXX";
+   char *name = mktemp(template);
+   //if (size == 147456) {
+   //   fd = 25;
+   //} else {
+      fd = open(name, O_CREAT | O_RDWR | O_CLOEXEC, 0600);
+      ftruncate(fd, size);
+   //}
+   return fd;
 #else
    const char *path;
    char *name;

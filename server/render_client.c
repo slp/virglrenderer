@@ -91,11 +91,12 @@ init_context_args(struct render_context_args *ctx_args,
 
 #ifdef ENABLE_RENDER_SERVER_WORKER_THREAD
 
-static int
+static void *
 render_client_worker_thread(void *thread_data)
 {
    const struct render_context_args *ctx_args = thread_data;
-   return render_context_main(ctx_args) ? 0 : -1;
+   render_context_main(ctx_args);
+   //return render_context_main(ctx_args) ? 0 : -1;
 }
 
 #endif /* ENABLE_RENDER_SERVER_WORKER_THREAD */

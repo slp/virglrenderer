@@ -5,6 +5,7 @@
 
 #include "render_context.h"
 #include "render_server.h"
+#include <sys/mman.h>
 
 /* The main process is the server process.  It enters render_server_main and
  * never returns except on fatal errors.
@@ -27,6 +28,21 @@
 int
 main(int argc, char **argv)
 {
+   //int fd = 25;
+   char *buf;
+
+#if 0
+   void *ret = mmap(NULL, 1024*1024, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+   if (ret == MAP_FAILED) {
+      fprintf(stderr, "YYY - MAP_FAILED");
+   } else {
+      fprintf(stderr, "YYY - MAP_OK");
+   }
+
+   buf = (char *) ret;
+   buf[0x69] = 'C';
+#endif
+
    render_log_init();
 
    struct render_context_args ctx_args;

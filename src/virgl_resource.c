@@ -258,7 +258,8 @@ virgl_resource_export_fd(struct virgl_resource *res, int *fd)
       if (!ctx)
          return VIRGL_RESOURCE_FD_INVALID;
 
-      return ctx->export_opaque_handle(ctx, res, fd);
+      return VIRGL_RESOURCE_OPAQUE_HANDLE;
+      //return ctx->export_opaque_handle(ctx, res, fd);
    } else if (res->fd_type != VIRGL_RESOURCE_FD_INVALID) {
       *fd = os_dupfd_cloexec(res->fd);
       return *fd >= 0 ? res->fd_type : VIRGL_RESOURCE_FD_INVALID;

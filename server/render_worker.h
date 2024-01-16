@@ -37,7 +37,7 @@ render_worker_jail_detach_workers(struct render_worker_jail *jail);
 
 struct render_worker *
 render_worker_create(struct render_worker_jail *jail,
-                     int (*thread_func)(void *thread_data),
+                     void *thread_func(void *thread_data),
                      void *thread_data,
                      size_t thread_data_size);
 

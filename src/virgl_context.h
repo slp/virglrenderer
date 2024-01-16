@@ -46,6 +46,8 @@ struct virgl_context_blob {
 
    uint32_t map_info;
 
+   uint64_t map_ptr;
+
    struct virgl_resource_vulkan_info vulkan_info;
 };
 

@@ -427,10 +427,35 @@ vkr_device_memory_export_blob(struct vkr_device_memory *mem,
       vulkan_info.allocation_size = mem->allocation_size;
       vulkan_info.memory_type_index = mem->memory_type_index;
    } else {
-      vkr_log("mem is not exportable");
-      return false;
+      vkr_log("calling vkMapMemory");
+      void *ptr;
+      if (vkMapMemory(mem->device->base.handle.device, mem->base.handle.device_memory,
+                      0, mem->allocation_size, 0, &ptr) != VK_SUCCESS) {
+         vkr_log("vkMapMemory failed");
+         return false;
+      } else {
+         vkr_log("vkMapMemory succeded: %p", ptr);
+
+         fd_type = VIRGL_RESOURCE_OPAQUE_HANDLE;
+         handle_type = VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD_BIT;
+         vulkan_info.allocation_size = mem->allocation_size;
+         vulkan_info.memory_type_index = mem->memory_type_index;
+
+         mem->exported = true;
+
+         *out_blob = (struct virgl_context_blob){
+            .type = fd_type,
+            .u.fd = -1,
+            .map_ptr = ptr,
+            .map_info = map_info,
+            .vulkan_info = vulkan_info,
+         };
+
+         return true;
+      }
    }
 
+   /*
    int fd;
    if (mem->gbm_bo) {
       assert(handle_type == VK_EXTERNAL_MEMORY_HANDLE_TYPE_DMA_BUF_BIT_EXT);
@@ -464,12 +489,13 @@ vkr_device_memory_export_blob(struct vkr_device_memory *mem,
          return false;
       }
    }
+   */
 
    mem->exported = true;
 
    *out_blob = (struct virgl_context_blob){
       .type = fd_type,
-      .u.fd = fd,
+      .u.fd = -1,
       .map_info = map_info,
       .vulkan_info = vulkan_info,
    };

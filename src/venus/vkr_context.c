@@ -245,6 +245,8 @@ vkr_context_create_resource_from_shm(struct vkr_context *ctx,
 {
    assert(!vkr_context_get_resource(ctx, res_id));
 
+   fprintf(stderr, "%s: entry: id=%d size=%lld\n", __func__, res_id, blob_size);
+
    int fd = os_create_anonymous_file(blob_size, "vkr-shmem");
    if (fd < 0)
       return false;
@@ -254,6 +256,9 @@ vkr_context_create_resource_from_shm(struct vkr_context *ctx,
       close(fd);
       return false;
    }
+
+   char *buf = (char *) mmap_ptr;
+   buf[0x69] = 'A';
 
    if (!vkr_context_import_resource_internal(ctx, res_id, blob_size,
                                              VIRGL_RESOURCE_FD_SHM, -1, mmap_ptr)) {
@@ -280,6 +285,8 @@ vkr_context_create_resource_from_device_memory(struct vkr_context *ctx,
                                                struct virgl_context_blob *out_blob)
 {
    assert(!vkr_context_get_resource(ctx, res_id));
+
+   fprintf(stderr, "%s: entry: id=%d size=%lld\n", __func__, res_id, blob_size);
 
    struct vkr_device_memory *mem = vkr_context_get_object(ctx, blob_id);
    if (!mem || mem->base.type != VK_OBJECT_TYPE_DEVICE_MEMORY)
@@ -310,10 +317,15 @@ vkr_context_create_resource_from_device_memory(struct vkr_context *ctx,
       return false;
    }
 
+   fprintf(stderr, "%s: map_ptr=0x%llx\n", __func__, blob.map_ptr);
+
    *out_blob = blob;
 
    return true;
 }
+
+#define __round_mask(x, y) ((__typeof__(x))((y)-1))
+#define round_up(x, y) ((((x)-1) | __round_mask(x, y))+1)
 
 bool
 vkr_context_create_resource(struct vkr_context *ctx,
@@ -323,13 +335,17 @@ vkr_context_create_resource(struct vkr_context *ctx,
                             uint32_t blob_flags,
                             struct virgl_context_blob *out_blob)
 {
+   uint64_t rounded_size = round_up(blob_size, 16384);
+   if (rounded_size != blob_size) {
+      fprintf(stderr, "%s: rounded %llu to %llu", __func__, blob_size, rounded_size);
+   }
    /* blob_id == 0 does not refer to an existing VkDeviceMemory, but implies a shm
     * allocation. It is logically contiguous and it can be exported.
     */
    if (!blob_id && blob_flags == VIRGL_RENDERER_BLOB_FLAG_USE_MAPPABLE)
-      return vkr_context_create_resource_from_shm(ctx, res_id, blob_size, out_blob);
+      return vkr_context_create_resource_from_shm(ctx, res_id, rounded_size, out_blob);
 
-   return vkr_context_create_resource_from_device_memory(ctx, res_id, blob_id, blob_size,
+   return vkr_context_create_resource_from_device_memory(ctx, res_id, blob_id, rounded_size,
                                                          blob_flags, out_blob);
 }
 

@@ -16,6 +16,8 @@ vkr_dispatch_vkEnumerateInstanceVersion(UNUSED struct vn_dispatch_context *dispa
 {
    vn_replace_vkEnumerateInstanceVersion_args_handle(args);
 
+   fprintf(stderr, "%s: entry\n", __func__);
+
    uint32_t version = 0;
    args->ret = vkEnumerateInstanceVersion(&version);
    if (args->ret == VK_SUCCESS)
@@ -169,6 +171,8 @@ vkr_dispatch_vkCreateInstance(struct vn_dispatch_context *dispatch,
    create_info->enabledLayerCount = layer_count;
    create_info->ppEnabledLayerNames = layer_names;
 
+   ext_names[ext_count++] = "VK_KHR_portability_enumeration";
+
    assert(ext_count <= ARRAY_SIZE(ext_names));
    create_info->enabledExtensionCount = ext_count;
    create_info->ppEnabledExtensionNames = ext_names;
@@ -193,6 +197,8 @@ vkr_dispatch_vkCreateInstance(struct vn_dispatch_context *dispatch,
    }
 
    instance->api_version = app_info.apiVersion;
+
+   create_info->flags = VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
 
    vn_replace_vkCreateInstance_args_handle(args);
    args->ret = vkCreateInstance(create_info, NULL, &instance->base.handle.instance);

@@ -28,7 +28,7 @@
 bool
 render_socket_pair(int out_fds[static 2])
 {
-   int ret = socketpair(AF_UNIX, SOCK_SEQPACKET | SOCK_CLOEXEC, 0, out_fds);
+   int ret = socketpair(AF_UNIX, SOCK_DGRAM /*| SOCK_CLOEXEC*/, 0, out_fds);
    if (ret) {
       render_log("failed to create socket pair");
       return false;
@@ -44,7 +44,7 @@ render_socket_is_seqpacket(int fd)
    socklen_t len = sizeof(type);
    if (getsockopt(fd, SOL_SOCKET, SO_TYPE, &type, &len))
       return false;
-   return type == SOCK_SEQPACKET;
+   return type == SOCK_DGRAM;
 }
 
 void
@@ -80,7 +80,7 @@ static bool
 render_socket_recvmsg(struct render_socket *socket, struct msghdr *msg, size_t *out_size)
 {
    do {
-      const ssize_t s = recvmsg(socket->fd, msg, MSG_CMSG_CLOEXEC);
+      const ssize_t s = recvmsg(socket->fd, msg, /*MSG_CMSG_CLOEXEC*/0);
       if (unlikely(s <= 0)) {
          if (!s)
             return false;
@@ -197,7 +197,7 @@ static bool
 render_socket_sendmsg(struct render_socket *socket, const struct msghdr *msg)
 {
    do {
-      const ssize_t s = sendmsg(socket->fd, msg, MSG_NOSIGNAL);
+      const ssize_t s = sendmsg(socket->fd, msg, /*MSG_NOSIGNAL*/0);
       if (unlikely(s < 0)) {
          if (errno == EAGAIN || errno == EINTR)
             continue;

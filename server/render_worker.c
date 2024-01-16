@@ -24,10 +24,10 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <signal.h>
-#include <sys/signalfd.h>
+//#include <sys/signalfd.h>
 #include <sys/types.h>
 #include <sys/wait.h>
-#include <threads.h>
+#include <pthread.h>
 #include <unistd.h>
 
 struct minijail;
@@ -44,7 +44,7 @@ struct render_worker_jail {
 
 struct render_worker {
 #ifdef ENABLE_RENDER_SERVER_WORKER_THREAD
-   thrd_t thread;
+   pthread_t thread;
 #else
    pid_t pid;
 #endif
@@ -318,6 +318,7 @@ render_worker_jail_get_sigchld_fd(const struct render_worker_jail *jail)
 static bool
 render_worker_jail_drain_sigchld_fd(struct render_worker_jail *jail)
 {
+#if 0
    if (jail->sigchld_fd < 0)
       return true;
 
@@ -332,6 +333,7 @@ render_worker_jail_drain_sigchld_fd(struct render_worker_jail *jail)
       render_log("failed to read signalfd");
       return false;
    } while (true);
+#endif
 
    return true;
 }
@@ -366,7 +368,7 @@ render_worker_jail_detach_workers(struct render_worker_jail *jail)
 
 struct render_worker *
 render_worker_create(struct render_worker_jail *jail,
-                     int (*thread_func)(void *thread_data),
+                     void *thread_func(void *thread_data),
                      void *thread_data,
                      size_t thread_data_size)
 {
@@ -387,7 +389,7 @@ render_worker_create(struct render_worker_jail *jail,
    ok = worker->pid >= 0;
    (void)thread_func;
 #elif defined(ENABLE_RENDER_SERVER_WORKER_THREAD)
-   ok = thrd_create(&worker->thread, thread_func, worker->thread_data) == thrd_success;
+   ok = pthread_create(&worker->thread, NULL, thread_func, worker->thread_data) == 0;
 #elif defined(ENABLE_RENDER_SERVER_WORKER_MINIJAIL)
    worker->pid = fork_minijail(jail->minijail);
    ok = worker->pid >= 0;
@@ -410,7 +412,7 @@ render_worker_destroy(struct render_worker_jail *jail, struct render_worker *wor
 
 #ifdef ENABLE_RENDER_SERVER_WORKER_THREAD
    /* we trust the thread to clean up and exit in finite time */
-   thrd_join(worker->thread, NULL);
+   pthread_join(worker->thread, NULL);
    worker->reaped = true;
 #else
    /* kill to make sure the worker exits in finite time */
@@ -429,7 +431,7 @@ render_worker_is_record(const struct render_worker *worker)
 {
    /* return false if called from the worker itself */
 #ifdef ENABLE_RENDER_SERVER_WORKER_THREAD
-   return !thrd_equal(worker->thread, thrd_current());
+   return !pthread_equal(worker->thread, pthread_self());
 #else
    return worker->pid > 0;
 #endif

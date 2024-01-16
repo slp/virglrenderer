@@ -97,6 +97,7 @@ struct virgl_resource {
    int iov_count;
 
    uint32_t map_info;
+   uint64_t map_ptr;
 
    uint64_t map_size;
    void *mapped;

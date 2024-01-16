@@ -17,7 +17,7 @@
 bool
 proxy_socket_pair(int out_fds[static 2])
 {
-   int ret = socketpair(AF_UNIX, SOCK_SEQPACKET, 0, out_fds);
+   int ret = socketpair(AF_UNIX, SOCK_DGRAM, 0, out_fds);
    if (ret) {
       proxy_log("failed to create socket pair");
       return false;
@@ -35,7 +35,7 @@ proxy_socket_is_seqpacket(int fd)
       proxy_log("fd %d err %s", fd, strerror(errno));
       return false;
    }
-   return type == SOCK_SEQPACKET;
+   return type == SOCK_DGRAM;
 }
 
 void
@@ -100,7 +100,7 @@ static bool
 proxy_socket_recvmsg(struct proxy_socket *socket, struct msghdr *msg)
 {
    do {
-      const ssize_t s = recvmsg(socket->fd, msg, MSG_CMSG_CLOEXEC);
+      const ssize_t s = recvmsg(socket->fd, msg, /*MSG_CMSG_CLOEXEC*/0);
       if (unlikely(s < 0)) {
          if (errno == EAGAIN || errno == EINTR)
             continue;
@@ -193,7 +193,7 @@ static bool
 proxy_socket_sendmsg(struct proxy_socket *socket, const struct msghdr *msg)
 {
    do {
-      const ssize_t s = sendmsg(socket->fd, msg, MSG_NOSIGNAL);
+      const ssize_t s = sendmsg(socket->fd, msg, /*MSG_NOSIGNAL*/0);
       if (unlikely(s < 0)) {
          if (errno == EAGAIN || errno == EINTR)
             continue;
