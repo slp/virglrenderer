@@ -16,7 +16,7 @@ vkr_dispatch_vkEnumerateInstanceVersion(UNUSED struct vn_dispatch_context *dispa
 {
    vn_replace_vkEnumerateInstanceVersion_args_handle(args);
 
-   fprintf(stderr, "%s: entry\n", __func__);
+   //fprintf(stderr, "%s: entry\n", __func__);
 
    uint32_t version = 0;
    args->ret = vkEnumerateInstanceVersion(&version);

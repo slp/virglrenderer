@@ -19,6 +19,7 @@
  */
 struct vkr_resource {
    uint32_t res_id;
+   uint64_t blob_id;
 
    enum virgl_resource_fd_type fd_type;
 
@@ -194,6 +195,8 @@ vkr_context_add_object(struct vkr_context *ctx, struct vkr_object *obj)
    assert(vkr_is_recognized_object_type(obj->type));
    assert(obj->id);
 
+   //fprintf(stderr, "add_object: obj=%p id=%d\n", (void*)obj, obj->id);
+
    mtx_lock(&ctx->object_mutex);
    assert(!_mesa_hash_table_search(ctx->object_table, &obj->id));
    _mesa_hash_table_insert(ctx->object_table, &obj->id, obj);
@@ -237,6 +240,7 @@ vkr_context_get_object(struct vkr_context *ctx, vkr_object_id obj_id)
    mtx_lock(&ctx->object_mutex);
    const struct hash_entry *entry = _mesa_hash_table_search(ctx->object_table, &obj_id);
    mtx_unlock(&ctx->object_mutex);
+   //fprintf(stderr, "get_object: obj=%p id=%d\n", (void*)entry, obj_id);
    return likely(entry) ? entry->data : NULL;
 }
 

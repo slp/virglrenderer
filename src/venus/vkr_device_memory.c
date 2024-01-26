@@ -257,6 +257,8 @@ vkr_dispatch_vkAllocateMemory(struct vn_dispatch_context *dispatch,
    mem->gbm_bo = gbm_bo;
    mem->allocation_size = alloc_info->allocationSize;
    mem->memory_type_index = mem_type_index;
+
+   //fprintf(stderr, "%s: mem=%p device_memory=%p\n", __func__, (void*) mem, (void*)mem->base.handle.device_memory);
 }
 
 static void
@@ -266,6 +268,15 @@ vkr_dispatch_vkFreeMemory(struct vn_dispatch_context *dispatch,
    struct vkr_device_memory *mem = vkr_device_memory_from_handle(args->memory);
    if (!mem)
       return;
+
+   //fprintf(stderr, "%s: mem=%p device_memory=%p\n", __func__, (void*) mem, (void*)mem->base.handle.device_memory);
+
+   if (mem->exported) {
+      //fprintf(stderr, "%s: memory exported, unmapping\n", __func__);
+      vkUnmapMemory(mem->device->base.handle.device, mem->base.handle.device_memory);
+   } else {
+      //fprintf(stderr, "%s: memory NOT exported\n", __func__);
+   }
 
    vkr_device_memory_release(mem);
    vkr_device_memory_destroy_and_remove(dispatch->data, args);
@@ -427,14 +438,14 @@ vkr_device_memory_export_blob(struct vkr_device_memory *mem,
       vulkan_info.allocation_size = mem->allocation_size;
       vulkan_info.memory_type_index = mem->memory_type_index;
    } else {
-      vkr_log("calling vkMapMemory");
+      //fprintf(stderr, "calling vkMapMemory mem=%p device_memory=%p\n", (void*) mem, (void*)mem->base.handle.device_memory);
       void *ptr;
       if (vkMapMemory(mem->device->base.handle.device, mem->base.handle.device_memory,
                       0, mem->allocation_size, 0, &ptr) != VK_SUCCESS) {
-         vkr_log("vkMapMemory failed");
+         //fprintf(stderr, "vkMapMemory failed\n");
          return false;
       } else {
-         vkr_log("vkMapMemory succeded: %p", ptr);
+         //fprintf(stderr, "vkMapMemory succeded: %p", ptr);
 
          fd_type = VIRGL_RESOURCE_OPAQUE_HANDLE;
          handle_type = VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD_BIT;

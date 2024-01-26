@@ -50,16 +50,6 @@ venus_context_resource_table_fini(struct venus_context *ctx)
 }
 
 static void
-venus_context_destroy(struct virgl_context *base)
-{
-   struct venus_context *ctx = (struct venus_context *)base;
-
-   venus_context_resource_table_fini(ctx);
-
-   free(ctx);
-}
-
-static void
 venus_context_attach_resource(struct virgl_context *base, struct virgl_resource *res)
 {
    struct venus_context *ctx = (struct venus_context *)base;
@@ -147,7 +137,7 @@ venus_context_get_blob(struct virgl_context *base,
    blob->map_ptr = map_ptr;
    blob->vulkan_info = vulkan_info;
 
-   fprintf(stderr, "%s: fd=0x%d\n", __func__, blob->u.fd);
+   //fprintf(stderr, "%s: fd=0x%llx\n", __func__, map_ptr);
 
    venus_context_resource_add(ctx, res_id);
 
@@ -223,7 +213,7 @@ venus_context_retire_fences_internal(struct venus_context *ctx, uint32_t ring_id
 {
    struct venus_timeline *timeline = &ctx->timelines[ring_idx];
 
-   //timeline->cur_seqno = cur_seqno;
+   timeline->cur_seqno = seqno;
    //timeline->cur_seqno_stall_count = 0;
 
    //fprintf(stderr, "%s: ring_idx=%d seqno=%d\n", __func__, ring_idx, seqno);
@@ -243,7 +233,7 @@ venus_context_retire_fences_internal(struct venus_context *ctx, uint32_t ring_id
 static void
 venus_context_retire_fences(struct virgl_context *base)
 {
-   //fprintf(stderr, "%s: UNIMPLEMENTED\n", __func__);
+   fprintf(stderr, "%s: UNIMPLEMENTED\n", __func__);
 #if 0
    struct proxy_context *ctx = (struct proxy_context *)base;
 
@@ -324,20 +314,6 @@ venus_context_submit_fence(struct virgl_context *base,
    return -1;
 }
 
-static void
-venus_context_init_base(struct venus_context *ctx)
-{
-   ctx->base.destroy = venus_context_destroy;
-   ctx->base.attach_resource = venus_context_attach_resource;
-   ctx->base.detach_resource = venus_context_detach_resource;
-   ctx->base.transfer_3d = venus_context_transfer_3d;
-   ctx->base.get_blob = venus_context_get_blob;
-   ctx->base.submit_cmd = venus_context_submit_cmd;
-
-   ctx->base.get_fencing_fd = venus_context_get_fencing_fd;
-   ctx->base.retire_fences = venus_context_retire_fences;
-   ctx->base.submit_fence = venus_context_submit_fence;
-}
 
 static struct venus_context *
 venus_lookup_context(uint32_t ctx_id)
@@ -364,6 +340,37 @@ static void
 venus_remove_context(struct venus_context *ctx)
 {
    list_del(&ctx->head);
+}
+
+static void
+venus_context_destroy(struct virgl_context *base)
+{
+   struct venus_context *ctx = (struct venus_context *)base;
+
+   vkr_renderer_destroy_context(base->ctx_id);
+
+   list_for_each_entry_safe (struct venus_fence, fence, &ctx->free_fences, head)
+      free(fence);
+   venus_context_resource_table_fini(ctx);
+
+   venus_remove_context(ctx);
+
+   free(ctx);
+}
+
+static void
+venus_context_init_base(struct venus_context *ctx)
+{
+   ctx->base.destroy = venus_context_destroy;
+   ctx->base.attach_resource = venus_context_attach_resource;
+   ctx->base.detach_resource = venus_context_detach_resource;
+   ctx->base.transfer_3d = venus_context_transfer_3d;
+   ctx->base.get_blob = venus_context_get_blob;
+   ctx->base.submit_cmd = venus_context_submit_cmd;
+
+   ctx->base.get_fencing_fd = venus_context_get_fencing_fd;
+   ctx->base.retire_fences = venus_context_retire_fences;
+   ctx->base.submit_fence = venus_context_submit_fence;
 }
 
 static void

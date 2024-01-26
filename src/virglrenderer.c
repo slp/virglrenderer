@@ -1157,7 +1157,7 @@ int virgl_renderer_resource_create_blob(const struct virgl_renderer_resource_cre
       if (!res)
          return -ENOMEM;
       res->map_ptr = blob.map_ptr;
-      fprintf(stderr, "%s: resource is OPAQUE: 0x%lld\n", __func__, res->map_ptr);
+      //fprintf(stderr, "%s: resource is OPAQUE: 0x%lld\n", __func__, res->map_ptr);
    } else if (blob.type != VIRGL_RESOURCE_FD_INVALID) {
       res = virgl_resource_create_from_fd(args->res_handle,
                                           blob.type,
@@ -1284,7 +1284,7 @@ int virgl_renderer_resource_get_map_ptr(uint32_t res_handle, uint64_t *map_ptr)
    if (!res)
       return -EINVAL;
 
-   fprintf(stderr, "%s: map_ptr=0x%llx\n", __func__, res->map_ptr);
+   //fprintf(stderr, "%s: map_ptr=0x%llx\n", __func__, res->map_ptr);
 
    *map_ptr = res->map_ptr;
    return 0;
